@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TikTok Creator Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --text-primary: #161823;
+    --text-secondary: #6c6c6c;
+    --text-muted: #9b9b9b;
+    --accent: #fe2c55;
+    --accent-light: rgba(254, 44, 85, 0.1);
+    --border: #e8e8e8;
+    --teal: #25f4ee;
+    --card-bg: #ffffff;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .screen { display: none; min-height: 100vh; animation: fadeIn 0.25s ease; }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 16px 12px; position: sticky; top: 0;
+    background: var(--bg); z-index: 100; border-bottom: 1px solid var(--border);
+  }
+  .header-back {
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; background: none; font-size: 22px;
+    color: var(--text-primary); border-radius: 50%; transition: background 0.2s;
+  }
+  .header-back:hover { background: var(--bg-secondary); }
+  .header-title { font-size: 17px; font-weight: 700; flex: 1; text-align: center; }
+  .header-more {
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; background: none; font-size: 20px;
+    color: var(--text-primary); border-radius: 50%; letter-spacing: 2px; transition: background 0.2s;
+  }
+  .header-more:hover { background: var(--bg-secondary); }
+
+  .update-label { text-align: center; color: var(--text-muted); font-size: 13px; padding: 8px 0 16px; }
+
+  .time-tabs { display: flex; gap: 0; padding: 0 16px; margin-bottom: 24px; }
+  .time-tab {
+    flex: 1; padding: 10px 0; text-align: center; font-size: 14px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; border: 1.5px solid var(--border);
+    background: var(--bg); transition: all 0.2s;
+  }
+  .time-tab:first-child { border-radius: 20px 0 0 20px; }
+  .time-tab:last-child { border-radius: 0 20px 20px 0; }
+  .time-tab:not(:first-child) { border-left: none; }
+  .time-tab.active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
+
+  .earnings-section { text-align: center; padding: 0 16px 20px; }
+  .earnings-amount { font-size: 40px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px; }
+  .earnings-label {
+    font-size: 14px; color: var(--text-secondary); display: flex; align-items: center;
+    justify-content: center; gap: 4px; margin-bottom: 4px;
+  }
+  .earnings-label .info-icon {
+    width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--text-muted);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text-muted); cursor: pointer;
+  }
+  .earnings-yesterday { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
+  .balance-btn {
+    display: inline-block; padding: 12px 48px; background: var(--accent); color: #fff;
+    border: none; border-radius: 25px; font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .balance-btn:hover { transform: scale(1.03); box-shadow: 0 4px 16px rgba(254, 44, 85, 0.35); }
+  .balance-btn:active { transform: scale(0.97); }
+
+  .chart-container { padding: 16px; position: relative; height: 260px; margin-bottom: 8px; }
+  .chart-canvas { width: 100%; height: 100%; cursor: crosshair; }
+  .chart-tooltip {
+    display: none; position: absolute; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; font-size: 13px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1); pointer-events: none; z-index: 10;
+  }
+  .chart-tooltip .tooltip-date { color: var(--text-secondary); font-size: 12px; }
+  .chart-tooltip .tooltip-value { font-weight: 700; font-size: 15px; color: var(--text-primary); }
+
+  .section-divider { height: 8px; background: var(--bg-secondary); }
+  .performance-header {
+    padding: 20px 16px 12px; font-size: 15px; font-weight: 600;
+    color: var(--text-secondary); display: flex; align-items: center; gap: 4px;
+  }
+  .performance-header .info-icon {
+    width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--text-muted);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text-muted);
+  }
+  .performance-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 0 16px 20px; gap: 8px; }
+  .perf-item { text-align: center; }
+  .perf-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; line-height: 1.3; }
+  .perf-value { font-size: 18px; font-weight: 700; }
+
+  .videos-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px; border-bottom: 1px solid var(--border);
+  }
+  .videos-header h3 { font-size: 16px; font-weight: 600; }
+  .videos-toggle {
+    width: 44px; height: 24px; border-radius: 12px; background: var(--teal);
+    position: relative; cursor: pointer; border: none; transition: background 0.3s;
+  }
+  .videos-toggle::after {
+    content: ''; position: absolute; top: 2px; right: 2px; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .videos-toggle.off { background: var(--border); }
+  .videos-toggle.off::after { transform: translateX(-20px); }
+
+  .customize-list {
+    padding: 12px 16px; font-size: 14px; font-weight: 600; color: var(--text-primary);
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .customize-list svg { width: 16px; height: 16px; }
+  .videos-description { padding: 0 16px 12px; font-size: 13px; color: var(--text-muted); line-height: 1.4; }
+
+  .video-item {
+    display: flex; align-items: center; padding: 12px 16px; gap: 12px;
+    cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--bg-secondary);
+  }
+  .video-item:hover { background: var(--bg-secondary); }
+  .video-thumb {
+    width: 56px; height: 56px; border-radius: 6px; background: #1a1a2e; flex-shrink: 0;
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+  }
+  .video-thumb-placeholder { color: #fff; font-size: 20px; }
+  .video-info { flex: 1; min-width: 0; }
+  .video-title {
+    font-size: 14px; font-weight: 500; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px;
+  }
+  .video-date { font-size: 12px; color: var(--text-muted); margin-bottom: 3px; }
+  .video-earnings { font-size: 15px; font-weight: 700; }
+  .video-arrow { color: var(--text-muted); font-size: 18px; flex-shrink: 0; }
+
+  .detail-video-info { display: flex; gap: 12px; padding: 20px 16px; align-items: flex-start; }
+  .detail-thumb {
+    width: 64px; height: 64px; border-radius: 8px; background: #1a1a2e; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .detail-thumb-icon { color: #fff; font-size: 24px; }
+  .detail-video-text { flex: 1; }
+  .detail-video-title { font-size: 14px; line-height: 1.4; margin-bottom: 4px; }
+  .detail-video-date { font-size: 13px; color: var(--text-muted); }
+  .detail-total {
+    text-align: center; padding: 20px 16px;
+    border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  }
+  .detail-total-label { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .detail-total-amount { font-size: 36px; font-weight: 800; letter-spacing: -1px; }
+
+  .trend-section { padding: 20px 16px; }
+  .trend-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .trend-title { font-size: 15px; font-weight: 600; }
+  .trend-period {
+    display: flex; align-items: center; gap: 4px; font-size: 14px; color: var(--text-secondary);
+    cursor: pointer; padding: 6px 12px; border: 1px solid var(--border);
+    border-radius: 16px; background: var(--bg);
+  }
+  .trend-chart-container { height: 180px; position: relative; }
+
+  .activity-tabs {
+    display: flex; gap: 8px; padding: 12px 16px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .activity-tabs::-webkit-scrollbar { display: none; }
+  .activity-tab {
+    padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;
+    white-space: nowrap; cursor: pointer; border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--text-primary); transition: all 0.2s;
+  }
+  .activity-tab.active { border-color: var(--teal); color: var(--teal); background: rgba(37, 244, 238, 0.06); }
+
+  .activity-loader { display: flex; justify-content: center; padding: 20px; gap: 6px; }
+  .loader-dot { width: 8px; height: 8px; border-radius: 50%; animation: loaderPulse 1.4s infinite ease-in-out; }
+  .loader-dot:nth-child(1) { background: var(--teal); animation-delay: 0s; }
+  .loader-dot:nth-child(2) { background: var(--accent); animation-delay: 0.2s; }
+  .loader-dot:nth-child(3) { background: var(--teal); animation-delay: 0.4s; }
+  @keyframes loaderPulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  .sort-label {
+    padding: 8px 16px 12px; font-size: 14px; font-weight: 600;
+    display: flex; align-items: center; gap: 4px; cursor: pointer;
+  }
+  .sort-label svg { width: 12px; height: 12px; }
+
+  .activity-item {
+    display: flex; padding: 12px 16px; gap: 10px;
+    align-items: flex-start; transition: background 0.15s; cursor: pointer;
+  }
+  .activity-item:hover { background: var(--bg-secondary); }
+  .activity-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    flex-shrink: 0; position: relative; overflow: visible;
+  }
+  .avatar-placeholder {
+    width: 100%; height: 100%; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 16px; color: #fff;
+  }
+  .avatar-img {
+    width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+  }
+  .activity-badge {
+    position: absolute; bottom: -2px; right: -2px; width: 18px; height: 18px;
+    border-radius: 50%; border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 9px; color: #fff;
+  }
+  .badge-comment { background: var(--teal); }
+  .badge-like { background: var(--accent); }
+  .badge-repost { background: #ff9500; }
+  .badge-fav { background: #ffcc00; }
+
+  .activity-content { flex: 1; min-width: 0; }
+  .activity-username { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+  .activity-text { font-size: 13px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 6px; }
+  .activity-actions { display: flex; gap: 16px; }
+  .activity-action-btn {
+    font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;
+    cursor: pointer; border: none; background: none; padding: 0;
+  }
+  .activity-action-btn:hover { color: var(--text-secondary); }
+  .activity-thumb {
+    width: 48px; height: 48px; border-radius: 6px;
+    background: #1a1a2e; flex-shrink: 0; overflow: hidden;
+  }
+
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px; display: flex; justify-content: space-around;
+    padding: 10px 0 24px; background: var(--bg); border-top: 1px solid var(--border); z-index: 200;
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    cursor: pointer; border: none; background: none; color: var(--text-muted);
+    font-size: 10px; transition: color 0.2s; padding: 0;
+  }
+  .nav-item.active { color: var(--text-primary); }
+  .nav-item svg { width: 24px; height: 24px; }
+  .nav-item:hover { color: var(--text-primary); }
+
+  ::-webkit-scrollbar { width: 0; }
+  .bottom-spacer { height: 80px; }
+  .blur-dollar { filter: blur(3px); display: inline; user-select: none; }
+</style>
+</head>
+<body>
+
+<!-- SCREEN 1: MAIN DASHBOARD -->
+<div id="screen-dashboard" class="screen active">
+  <div class="header">
+    <button class="header-back" onclick="navigateTo('screen-activity', true)">&#8592;</button>
+    <div class="header-title">Creative Program Dashboard</div>
+    <button class="header-more">&#8226;&#8226;&#8226;</button>
+  </div>
+
+  <div class="update-label">Last updated: 28-11</div>
+
+  <div class="time-tabs">
+    <div class="time-tab active" onclick="switchTimeTab(this, '30d')">30 days</div>
+    <div class="time-tab" onclick="switchTimeTab(this, '6m')">6 months</div>
+    <div class="time-tab" onclick="switchTimeTab(this, 'all')">All time</div>
+  </div>
+
+  <div class="earnings-section">
+    <div class="earnings-amount" id="total-earnings">$2,015.00</div>
+    <div class="earnings-label">
+      Estimated rewards <span class="info-icon">i</span>
+    </div>
+    <div class="earnings-yesterday">Yesterday: $139.02</div>
+    <button class="balance-btn">View balance</button>
+  </div>
+
+  <div class="chart-container">
+    <canvas id="earningsChart" class="chart-canvas"></canvas>
+    <div class="chart-tooltip" id="chartTooltip">
+      <div class="tooltip-date"></div>
+      <div class="tooltip-value"></div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="performance-header">
+    Performance in last 30 days <span class="info-icon">i</span>
+  </div>
+  <div class="performance-grid">
+    <div class="perf-item">
+      <div class="perf-label">Estimated<br>rewards</div>
+      <div class="perf-value">$2,015.00</div>
+    </div>
+    <div class="perf-item">
+      <div class="perf-label">Qualified<br>views</div>
+      <div class="perf-value">8.4M</div>
+    </div>
+    <div class="perf-item">
+      <div class="perf-label"><br>RPM</div>
+      <div class="perf-value">$0.24</div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="videos-header">
+    <h3>Videos</h3>
+    <button class="videos-toggle" id="videosToggle" onclick="toggleVideos()"></button>
+  </div>
+
+  <div id="videosSection">
+    <div class="customize-list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21v-7m0-4V3m8 18v-9m0-4V3m8 18v-5m0-4V3M1 14h6M9 8h6M17 16h6"/></svg>
+      Customize list
+    </div>
+    <div class="videos-description">
+      Showing qualified videos and their rewards in the last 30 days.
+    </div>
+    <div id="videosList"></div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+  <nav class="bottom-nav" id="nav-dashboard"></nav>
+</div>
+
+<!-- SCREEN 2: REWARD DETAILS -->
+<div id="screen-detail" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="navigateTo('screen-dashboard', true)">&#8592;</button>
+    <div class="header-title">Reward Details</div>
+    <button class="header-more">&#8226;&#8226;&#8226;</button>
+  </div>
+
+  <div class="detail-video-info">
+    <div class="detail-thumb"><span class="detail-thumb-icon">&#9734;</span></div>
+    <div class="detail-video-text">
+      <div class="detail-video-title">astronomy | collision between the biggest stars in the universe #blackholes #neutronstar...</div>
+      <div class="detail-video-date">Published: 3-11-2023</div>
+    </div>
+  </div>
+
+  <div class="detail-total">
+    <div class="detail-total-label">Total estimated rewards to date</div>
+    <div class="detail-total-amount">$907.03</div>
+  </div>
+
+  <div class="performance-header">
+    Performance in last 30 days <span class="info-icon">i</span>
+  </div>
+  <div class="performance-grid">
+    <div class="perf-item">
+      <div class="perf-label">Estimated<br>rewards</div>
+      <div class="perf-value">$907.03</div>
+    </div>
+    <div class="perf-item">
+      <div class="perf-label">Qualified<br>views</div>
+      <div class="perf-value">3.2M</div>
+    </div>
+    <div class="perf-item">
+      <div class="perf-label"><br>RPM</div>
+      <div class="perf-value">$0.29</div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <div class="trend-section">
+    <div class="trend-header">
+      <div class="trend-title">Reward trend</div>
+      <div class="trend-period" onclick="toggleTrendPeriod()">
+        <span id="trendPeriodLabel">7 days</span>
+        <svg width="10" height="6" viewBox="0 0 10 6" fill="currentColor"><path d="M1 1l4 4 4-4"/></svg>
+      </div>
+    </div>
+    <div class="trend-chart-container">
+      <canvas id="trendChart" class="chart-canvas"></canvas>
+    </div>
+  </div>
+
+  <div class="bottom-spacer"></div>
+  <nav class="bottom-nav" id="nav-detail"></nav>
+</div>
+
+<!-- SCREEN 3: ACTIVITY -->
+<div id="screen-activity" class="screen">
+  <div class="header">
+    <button class="header-back" onclick="navigateTo('screen-dashboard', true)">&#8592;</button>
+    <div class="header-title">Activity</div>
+    <button class="header-more">&#8226;&#8226;&#8226;</button>
+  </div>
+
+  <div class="activity-tabs" id="activityTabs">
+    <div class="activity-tab active" onclick="switchActivityTab(this, 'all')">All</div>
+    <div class="activity-tab" onclick="switchActivityTab(this, 'comments')">Comments 407</div>
+    <div class="activity-tab" onclick="switchActivityTab(this, 'mentions')">Mentions 3</div>
+    <div class="activity-tab" onclick="switchActivityTab(this, 'likes')">Likes</div>
+  </div>
+
+  <div class="activity-loader" id="activityLoader">
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+    <div class="loader-dot"></div>
+  </div>
+
+  <div class="sort-label">
+    Most recent
+    <svg viewBox="0 0 10 6" fill="currentColor"><path d="M1 1l4 4 4-4"/></svg>
+  </div>
+
+  <div id="activityList"></div>
+  <div class="bottom-spacer"></div>
+  <nav class="bottom-nav" id="nav-activity"></nav>
+</div>
+
+<script>
+// ===== DATA =====
+var chartData = {
+  '30d': {
+    labels: ['30-10','2-11','5-11','8-11','11-11','14-11','17-11','20-11','23-11','26-11','28-11'],
+    values: [13, 30, 48, 95, 77, 121, 117, 91, 174, 56, 346],
+    total: '$2,015.00', yesterday: '$139.02'
+  },
+  '6m': {
+    labels: ['Jun','Jul','Aug','Sep','Oct','Nov'],
+    values: [355, 643, 988, 1388, 1776, 2087],
+    total: '$7,227.00', yesterday: '$139.02'
+  },
+  'all': {
+    labels: ['Jan','Mar','May','Jul','Sep','Nov'],
+    values: [140, 527, 1076, 1755, 3276, 4914],
+    total: '$12,844.00', yesterday: '$139.02'
+  }
+};
+
+var videos = [
+  { title: 'Is shadow faster than light? #universe...', date: '14-11-2023', earnings: '$199.95', color: '#2c2c3a' },
+  { title: 'the solar system is bigger than we thought #space...', date: '10-11-2023', earnings: '$168.32', color: '#1a1a2e' },
+  { title: 'astronomy | collision between the biggest stars...', date: '3-11-2023', earnings: '$907.03', color: '#0f0f1a' },
+  { title: 'what happens inside a black hole #physics...', date: '28-10-2023', earnings: '$155.88', color: '#1e1e30' },
+  { title: 'neutron stars explained in 60 seconds...', date: '22-10-2023', earnings: '$112.45', color: '#252540' },
+  { title: 'the universe is expanding faster than light...', date: '15-10-2023', earnings: '$188.38', color: '#12122a' },
+];
+
+var activities = {
+  all: [
+    { type: 'repost', user: 'Marcus_Chen', avatarImg: 'https://i.pravatar.cc/88?img=11', comment: 'reposted your video.', time: 'Now' },
+    { type: 'like', user: 'Sofia Martinez, Liam & Jake', avatarImg: 'https://i.pravatar.cc/88?img=5', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'EmmaWright', avatarImg: 'https://i.pravatar.cc/88?img=9', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'RyanPatel_92', avatarImg: 'https://i.pravatar.cc/88?img=12', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'OliviaJames', avatarImg: 'https://i.pravatar.cc/88?img=25', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'DanielKim07', avatarImg: 'https://i.pravatar.cc/88?img=33', comment: 'liked your video.', time: 'Now' },
+    { type: 'fav', user: 'NoahBrooks', avatarImg: 'https://i.pravatar.cc/88?img=52', comment: 'added your video to Favorites.', time: 'Now' },
+  ],
+  comments: [
+    { type: 'comment', user: 'JessicaLee_art', avatarImg: 'https://i.pravatar.cc/88?img=44', comment: 'commented: No se sabe porque no existe Agora', time: '1min' },
+    { type: 'comment', user: 'AlexTurner', avatarImg: 'https://i.pravatar.cc/88?img=53', comment: 'commented: This is mind-blowing content!', time: '2min' },
+    { type: 'comment', user: 'MiaSanchez', avatarImg: 'https://i.pravatar.cc/88?img=47', comment: 'commented: Otro que no existe ningun agujero Phoenix A', time: '3min' },
+    { type: 'comment', user: 'ChrisWalker', avatarImg: 'https://i.pravatar.cc/88?img=59', comment: 'commented: la expansion del universo', time: '3min' },
+    { type: 'comment', user: 'IsabellaRoss', avatarImg: 'https://i.pravatar.cc/88?img=38', comment: 'commented: increible video!', time: '5min' },
+  ],
+  mentions: [
+    { type: 'comment', user: 'NathanReeves', avatarImg: 'https://i.pravatar.cc/88?img=60', comment: 'mentioned you: check this out!', time: '10min' },
+    { type: 'comment', user: 'AvaThompson', avatarImg: 'https://i.pravatar.cc/88?img=16', comment: 'mentioned you: your content is amazing', time: '1h' },
+    { type: 'comment', user: 'EthanMorris', avatarImg: 'https://i.pravatar.cc/88?img=67', comment: 'mentioned you in a comment', time: '3h' },
+  ],
+  likes: [
+    { type: 'like', user: 'Sofia Martinez, Liam & Jake', avatarImg: 'https://i.pravatar.cc/88?img=5', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'EmmaWright', avatarImg: 'https://i.pravatar.cc/88?img=9', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'RyanPatel_92', avatarImg: 'https://i.pravatar.cc/88?img=12', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'OliviaJames', avatarImg: 'https://i.pravatar.cc/88?img=25', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'DanielKim07', avatarImg: 'https://i.pravatar.cc/88?img=33', comment: 'liked your video.', time: 'Now' },
+    { type: 'like', user: 'ZoeAnderson', avatarImg: 'https://i.pravatar.cc/88?img=20', comment: 'liked your video.', time: '1min' },
+    { type: 'like', user: 'TylerBrown', avatarImg: 'https://i.pravatar.cc/88?img=68', comment: 'liked your video.', time: '2min' },
+  ]
+};
+
+var currentPeriod = '30d';
+var currentActivityTab = 'all';
+
+// ===== HELPERS (safe DOM creation) =====
+function el(tag, attrs, children) {
+  var e = document.createElement(tag);
+  if (attrs) {
+    Object.keys(attrs).forEach(function(k) {
+      if (k === 'className') e.className = attrs[k];
+      else if (k === 'textContent') e.textContent = attrs[k];
+      else if (k === 'onclick') e.onclick = attrs[k];
+      else if (k.startsWith('data')) e.setAttribute(k, attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    });
+  }
+  if (children) {
+    (Array.isArray(children) ? children : [children]).forEach(function(c) {
+      if (typeof c === 'string') e.appendChild(document.createTextNode(c));
+      else if (c) e.appendChild(c);
+    });
+  }
+  return e;
+}
+
+// ===== BUILD BOTTOM NAV =====
+function buildNav(containerId, activeIndex) {
+  var nav = document.getElementById(containerId);
+  var items = [
+    { label: 'Dashboard', screen: 'screen-dashboard', icon: 'M4 11.5V20h5.5v-6h5v6H20v-8.5L12 4z' },
+    { label: 'Activity', screen: 'screen-activity', icon: null },
+    { label: 'Details', screen: 'screen-detail', icon: null }
+  ];
+  items.forEach(function(item, i) {
+    var btn = el('button', { className: 'nav-item' + (i === activeIndex ? ' active' : '') });
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '24');
+    svg.setAttribute('height', '24');
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    if (i === 0) {
+      svg.setAttribute('fill', 'currentColor');
+      path.setAttribute('d', 'M4 11.5V20h5.5v-6h5v6H20v-8.5L12 4z');
+    } else if (i === 1) {
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      path.setAttribute('d', 'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9');
+      var path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path2.setAttribute('d', 'M13.73 21a2 2 0 01-3.46 0');
+      svg.appendChild(path2);
+    } else {
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '2');
+      path.setAttribute('d', 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z');
+    }
+    svg.appendChild(path);
+    btn.appendChild(svg);
+    var span = el('span', { textContent: item.label });
+    btn.appendChild(span);
+    var screen = item.screen;
+    btn.addEventListener('click', function() { navigateTo(screen); });
+    nav.appendChild(btn);
+  });
+}
+
+// ===== NAVIGATION =====
+function navigateTo(screenId, reverse) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  var screen = document.getElementById(screenId);
+  screen.style.animation = reverse ? 'fadeInLeft 0.25s ease' : 'fadeIn 0.25s ease';
+  screen.classList.add('active');
+  window.scrollTo(0, 0);
+  if (screenId === 'screen-detail') drawTrendChart();
+}
+
+// ===== TIME TABS =====
+function switchTimeTab(elem, period) {
+  document.querySelectorAll('.time-tab').forEach(function(t) { t.classList.remove('active'); });
+  elem.classList.add('active');
+  currentPeriod = period;
+  document.getElementById('total-earnings').textContent = chartData[period].total;
+  blurDollarSigns(document.getElementById('total-earnings'));
+  drawChart();
+}
+
+// ===== TOGGLE VIDEOS =====
+function toggleVideos() {
+  var toggle = document.getElementById('videosToggle');
+  var section = document.getElementById('videosSection');
+  toggle.classList.toggle('off');
+  section.style.display = toggle.classList.contains('off') ? 'none' : 'block';
+}
+
+// ===== RENDER VIDEOS LIST =====
+function renderVideos() {
+  var list = document.getElementById('videosList');
+  list.textContent = '';
+  videos.forEach(function(v) {
+    var item = el('div', { className: 'video-item' });
+    item.addEventListener('click', function() { navigateTo('screen-detail'); });
+
+    var thumb = el('div', { className: 'video-thumb' });
+    thumb.style.background = v.color;
+    thumb.appendChild(el('span', { className: 'video-thumb-placeholder', textContent: '\u2606' }));
+
+    var info = el('div', { className: 'video-info' });
+    info.appendChild(el('div', { className: 'video-title', textContent: v.title }));
+    info.appendChild(el('div', { className: 'video-date', textContent: 'Published: ' + v.date }));
+    info.appendChild(el('div', { className: 'video-earnings', textContent: v.earnings }));
+
+    var arrow = el('span', { className: 'video-arrow', textContent: '\u203A' });
+
+    item.appendChild(thumb);
+    item.appendChild(info);
+    item.appendChild(arrow);
+    list.appendChild(item);
+  });
+  blurDollarSigns(list);
+}
+
+// ===== RENDER ACTIVITY =====
+function switchActivityTab(elem, tab) {
+  document.querySelectorAll('.activity-tab').forEach(function(t) { t.classList.remove('active'); });
+  elem.classList.add('active');
+  currentActivityTab = tab;
+  var loader = document.getElementById('activityLoader');
+  var list = document.getElementById('activityList');
+  loader.style.display = 'flex';
+  list.style.opacity = '0.3';
+  setTimeout(function() {
+    loader.style.display = 'none';
+    list.style.opacity = '1';
+    renderActivity();
+  }, 600);
+}
+
+function renderActivity() {
+  var list = document.getElementById('activityList');
+  list.textContent = '';
+  var items = activities[currentActivityTab] || activities.all;
+
+  items.forEach(function(item) {
+    var row = el('div', { className: 'activity-item' });
+
+    // Avatar
+    var avatarWrap = el('div', { className: 'activity-avatar' });
+    if (item.avatarImg) {
+      var img = document.createElement('img');
+      img.className = 'avatar-img';
+      img.src = item.avatarImg;
+      img.alt = item.user;
+      img.loading = 'lazy';
+      avatarWrap.appendChild(img);
+    } else {
+      var placeholder = el('div', { className: 'avatar-placeholder' });
+      placeholder.style.background = item.avatar || '#888';
+      placeholder.textContent = item.initial || '\uD83D\uDC64';
+      avatarWrap.appendChild(placeholder);
+    }
+
+    var badgeClass = item.type === 'comment' ? 'badge-comment' :
+                     item.type === 'like' ? 'badge-like' :
+                     item.type === 'repost' ? 'badge-repost' : 'badge-fav';
+    var badgeIcon = item.type === 'comment' ? '\uD83D\uDCAC' :
+                    item.type === 'like' ? '\u2764' :
+                    item.type === 'repost' ? '\u21BA' : '\u2605';
+    var badge = el('div', { className: 'activity-badge ' + badgeClass, textContent: badgeIcon });
+    avatarWrap.appendChild(badge);
+
+    // Content
+    var content = el('div', { className: 'activity-content' });
+    content.appendChild(el('div', { className: 'activity-username', textContent: item.user || 'Anonymous' }));
+    content.appendChild(el('div', { className: 'activity-text', textContent: item.comment + ' ' + item.time }));
+
+    if (item.type === 'comment') {
+      var actions = el('div', { className: 'activity-actions' });
+      var replyBtn = el('button', { className: 'activity-action-btn', textContent: '\uD83D\uDCAC Reply' });
+      var likeBtn = el('button', { className: 'activity-action-btn', textContent: '\u2661 Like' });
+      actions.appendChild(replyBtn);
+      actions.appendChild(likeBtn);
+      content.appendChild(actions);
+    }
+
+    // Thumb
+    var thumb = el('div', { className: 'activity-thumb' });
+    thumb.style.background = '#1a1a2e';
+
+    row.appendChild(avatarWrap);
+    row.appendChild(content);
+    row.appendChild(thumb);
+    list.appendChild(row);
+  });
+}
+
+// ===== CHART DRAWING =====
+var chartBaseImage = null;
+var chartDims = null;
+
+function drawChartBase() {
+  var canvas = document.getElementById('earningsChart');
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  var w = rect.width;
+  var h = rect.height;
+  var data = chartData[currentPeriod];
+  var values = data.values;
+  var labels = data.labels;
+  var maxVal = Math.max.apply(null, values) * 1.15;
+  var padding = { top: 10, right: 50, bottom: 30, left: 10 };
+  var chartW = w - padding.left - padding.right;
+  var chartH = h - padding.top - padding.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Grid lines
+  var gridSteps = 5;
+  ctx.strokeStyle = '#f0f0f0';
+  ctx.lineWidth = 1;
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillStyle = '#9b9b9b';
+  ctx.textAlign = 'right';
+
+  for (var i = 0; i <= gridSteps; i++) {
+    var y = padding.top + (chartH / gridSteps) * i;
+    var val = Math.round(maxVal - (maxVal / gridSteps) * i);
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(w - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(val, w - 5, y + 4);
+  }
+
+  // X labels
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#9b9b9b';
+  var step = Math.max(1, Math.floor(labels.length / 4));
+  for (var i = 0; i < labels.length; i += step) {
+    var x = padding.left + (chartW / (labels.length - 1)) * i;
+    ctx.fillText(labels[i], x, h - 5);
+  }
+
+  // Area fill gradient
+  var gradient = ctx.createLinearGradient(0, padding.top, 0, h - padding.bottom);
+  gradient.addColorStop(0, 'rgba(254, 44, 85, 0.25)');
+  gradient.addColorStop(1, 'rgba(254, 44, 85, 0.02)');
+
+  ctx.beginPath();
+  ctx.moveTo(padding.left, h - padding.bottom);
+  for (var i = 0; i < values.length; i++) {
+    var x = padding.left + (chartW / (values.length - 1)) * i;
+    var y = padding.top + chartH - (values[i] / maxVal) * chartH;
+    if (i === 0) { ctx.lineTo(x, y); }
+    else {
+      var prevX = padding.left + (chartW / (values.length - 1)) * (i - 1);
+      var prevY = padding.top + chartH - (values[i - 1] / maxVal) * chartH;
+      var cpx = (prevX + x) / 2;
+      ctx.bezierCurveTo(cpx, prevY, cpx, y, x, y);
+    }
+  }
+  ctx.lineTo(padding.left + chartW, h - padding.bottom);
+  ctx.closePath();
+  ctx.fillStyle = gradient;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  for (var i = 0; i < values.length; i++) {
+    var x = padding.left + (chartW / (values.length - 1)) * i;
+    var y = padding.top + chartH - (values[i] / maxVal) * chartH;
+    if (i === 0) { ctx.moveTo(x, y); }
+    else {
+      var prevX = padding.left + (chartW / (values.length - 1)) * (i - 1);
+      var prevY = padding.top + chartH - (values[i - 1] / maxVal) * chartH;
+      var cpx = (prevX + x) / 2;
+      ctx.bezierCurveTo(cpx, prevY, cpx, y, x, y);
+    }
+  }
+  ctx.strokeStyle = '#fe2c55';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  // Store points for tooltip
+  canvas._points = values.map(function(v, i) {
+    return {
+      x: padding.left + (chartW / (values.length - 1)) * i,
+      y: padding.top + chartH - (v / maxVal) * chartH,
+      value: v, label: labels[i]
+    };
+  });
+
+  // Cache the clean base image so hover can restore it
+  chartBaseImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  chartDims = { w: w, h: h, padding: padding };
+}
+
+function drawChart() {
+  drawChartBase();
+
+  var canvas = document.getElementById('earningsChart');
+  var ctx = canvas.getContext('2d');
+
+  function handleHover(e) {
+    e.preventDefault();
+    var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    var canvasRect = canvas.getBoundingClientRect();
+    var mx = clientX - canvasRect.left;
+    var closest = null, minDist = Infinity;
+    canvas._points.forEach(function(p) {
+      var d = Math.abs(p.x - mx);
+      if (d < minDist) { minDist = d; closest = p; }
+    });
+
+    // Restore clean base chart first (removes old dots/lines)
+    ctx.putImageData(chartBaseImage, 0, 0);
+
+    if (closest && minDist < 40) {
+      var tooltip = document.getElementById('chartTooltip');
+      tooltip.style.display = 'block';
+      tooltip.querySelector('.tooltip-date').textContent = closest.label;
+      var tooltipVal = tooltip.querySelector('.tooltip-value');
+      tooltipVal.textContent = '$' + closest.value.toFixed(2);
+      blurDollarSigns(tooltipVal);
+      var tooltipX = closest.x - 40;
+      if (tooltipX < 10) tooltipX = 10;
+      if (tooltipX > chartDims.w - 100) tooltipX = chartDims.w - 100;
+      tooltip.style.left = tooltipX + 'px';
+      tooltip.style.top = (closest.y - 50) + 'px';
+
+      // Dashed vertical line
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(closest.x, closest.y + 6);
+      ctx.lineTo(closest.x, chartDims.h - chartDims.padding.bottom);
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Outer dot
+      ctx.beginPath();
+      ctx.arc(closest.x, closest.y, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#fe2c55';
+      ctx.fill();
+
+      // Inner dot
+      ctx.beginPath();
+      ctx.arc(closest.x, closest.y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    } else {
+      document.getElementById('chartTooltip').style.display = 'none';
+    }
+  }
+
+  canvas.onmousemove = handleHover;
+  canvas.ontouchmove = handleHover;
+  canvas.onmouseleave = function() {
+    document.getElementById('chartTooltip').style.display = 'none';
+    ctx.putImageData(chartBaseImage, 0, 0);
+  };
+}
+
+// ===== TREND CHART =====
+function drawTrendChart() {
+  var canvas = document.getElementById('trendChart');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  var w = rect.width;
+  var h = rect.height;
+  var values = [0.18, 0.22, 0.28, 0.35, 0.42, 0.31, 0.27];
+  var labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var maxVal = 0.5;
+  var padding = { top: 10, right: 50, bottom: 30, left: 10 };
+  var chartW = w - padding.left - padding.right;
+  var chartH = h - padding.top - padding.bottom;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Grid
+  var gridValues = [0.21, 0.32, 0.42];
+  ctx.font = '11px -apple-system, sans-serif';
+  ctx.fillStyle = '#9b9b9b';
+  ctx.textAlign = 'right';
+  ctx.strokeStyle = '#f0f0f0';
+  ctx.lineWidth = 1;
+
+  gridValues.forEach(function(gv) {
+    var y = padding.top + chartH - (gv / maxVal) * chartH;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, y);
+    ctx.lineTo(w - padding.right, y);
+    ctx.stroke();
+    ctx.fillText(gv.toFixed(2), w - 5, y + 4);
+  });
+
+  // X labels
+  ctx.textAlign = 'center';
+  labels.forEach(function(label, i) {
+    var x = padding.left + (chartW / (labels.length - 1)) * i;
+    ctx.fillText(label, x, h - 5);
+  });
+
+  // Bars
+  var barWidth = chartW / labels.length * 0.6;
+  values.forEach(function(v, i) {
+    var x = padding.left + (chartW / (labels.length - 1)) * i - barWidth / 2;
+    var barH = (v / maxVal) * chartH;
+    var y = padding.top + chartH - barH;
+
+    var grad = ctx.createLinearGradient(x, y, x, padding.top + chartH);
+    grad.addColorStop(0, 'rgba(254, 44, 85, 0.7)');
+    grad.addColorStop(1, 'rgba(254, 44, 85, 0.15)');
+    ctx.fillStyle = grad;
+
+    ctx.beginPath();
+    var r = 4;
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + barWidth - r, y);
+    ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + r);
+    ctx.lineTo(x + barWidth, padding.top + chartH);
+    ctx.lineTo(x, padding.top + chartH);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.fill();
+  });
+}
+
+var trendPeriodIndex = 0;
+var trendPeriods = ['7 days', '14 days', '30 days'];
+function toggleTrendPeriod() {
+  trendPeriodIndex = (trendPeriodIndex + 1) % trendPeriods.length;
+  document.getElementById('trendPeriodLabel').textContent = trendPeriods[trendPeriodIndex];
+  drawTrendChart();
+}
+
+// ===== BLUR DOLLAR SIGNS =====
+function blurDollarSigns(root) {
+  root = root || document.body;
+  var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+  var nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(function(node) {
+    if (node.parentElement && node.parentElement.classList && node.parentElement.classList.contains('blur-dollar')) return;
+    if (node.parentElement && node.parentElement.tagName === 'SCRIPT') return;
+    if (node.parentElement && node.parentElement.tagName === 'STYLE') return;
+    if (node.nodeValue.indexOf('$') === -1) return;
+    var parts = node.nodeValue.split('$');
+    if (parts.length < 2) return;
+    var frag = document.createDocumentFragment();
+    parts.forEach(function(part, i) {
+      if (i > 0) {
+        var span = document.createElement('span');
+        span.className = 'blur-dollar';
+        span.textContent = '$';
+        frag.appendChild(span);
+      }
+      if (part) frag.appendChild(document.createTextNode(part));
+    });
+    node.parentNode.replaceChild(frag, node);
+  });
+}
+
+// ===== INIT =====
+function init() {
+  buildNav('nav-dashboard', 0);
+  buildNav('nav-detail', 2);
+  buildNav('nav-activity', 1);
+  renderVideos();
+  renderActivity();
+  drawChart();
+  blurDollarSigns();
+
+  window.addEventListener('resize', function() {
+    drawChart();
+    if (document.getElementById('screen-detail').classList.contains('active')) {
+      drawTrendChart();
+    }
+  });
+}
+
+init();
+</script>
+</body>
+</html>
